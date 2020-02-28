@@ -1,0 +1,50 @@
+# Tank Filter Management
+
+# Turns filters off if their tanks reach
+# a given pressure.
+
+alias Filter1 d0
+alias Tank1 d1
+alias Filter2 d2
+alias Tank2 d3
+alias Filter3 d4
+alias Tank3 d5
+
+# Max pipe pressure is 60.795MPa
+# Units are KPa
+define MaxTankPressure 50000
+
+# There seems to be a return address register,
+# but no way to de-reference registers
+
+loop:
+
+l r0 Tank1 Pressure
+sub r0 MaxTankPressure r0
+bgtz r0 t1ok
+s Filter1 On 0
+j t2
+t1ok:
+s Filter1 On 1
+
+t2:
+l r0 Tank2 Pressure
+sub r0 MaxTankPressure r0
+bgtz r0 t2ok
+s Filter2 On 0
+j t3
+t2ok:
+s Filter2 On 1
+
+t3:
+l r0 Tank3 Pressure
+sub r0 MaxTankPressure r0
+bgtz r0 t3ok
+s Filter3 On 0
+j done
+t3ok:
+s Filter3 On 3
+
+done:
+yield
+j loop

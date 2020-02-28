@@ -1,0 +1,58 @@
+# Creates a breathable mix
+# in a tank by by controlling Volume Pumps
+
+alias BreathableTank d0
+alias O2Pump d1
+alias N2Pump d2
+alias CO2Pump d3
+
+# Pressure in KPa
+define DesiredPressure 100
+
+define DesiredRatioO2 0.2
+define DesiredRatioN2 0.7
+define DesiredRatioCO2 0.1
+
+loop:
+
+# Check if we hit the pressure threshold
+l r0 BreathableTank Pressure
+blt r0 DesiredPressure checkO2
+s O2Pump On 0
+s N2Pump On 0
+s CO2Pump On 0
+j done
+
+checkO2:
+l r0 BreathableTank RatioOxygen
+bne r0 r0 moreO2 # Check NaN ratio
+sub r0 DesiredRatioO2 r0
+bgtz r0 moreO2
+s O2Pump On 0
+j checkN2
+moreO2:
+s O2Pump On 1
+
+checkN2:
+l r0 BreathableTank RatioNitrogen
+bne r0 r0 moreN2 # Check for NaN ratio
+sub r0 DesiredRatioN2 r0
+bgtz r0 moreN2
+s N2Pump On 0
+j checkCO2
+moreN2:
+s N2Pump On 1
+
+checkCO2:
+l r0 BreathableTank RatioCarbonDioxide
+bne r0 r0 moreCO2 # Check for NaN ratio
+sub r0 DesiredRatioCO2 r0
+bgtz r0 moreCO2
+s CO2Pump On 0
+j done
+moreCO2:
+s CO2Pump On 1
+
+done:
+yield
+j loop

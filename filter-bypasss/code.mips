@@ -1,0 +1,46 @@
+alias Filter1 d0
+alias Bypass1 d1
+alias Filter2 d2
+alias Bypass2 d3
+alias Filter3 d4
+alias Bypass3 d5
+
+# Monitor filters and open bypass if
+# - Filtration is off
+# - Filter is depleted
+# only supports one filter for now
+
+loop:
+
+l r0 Filter1 On
+beqz r0 f1inactive
+ls r0 Filter1 1 Quantity
+beqz r0 f1inactive
+s Bypass1 On 0
+j f2
+f1inactive:
+s Bypass1 On 1
+
+f2:
+l r0 Filter2 On
+beqz r0 f2inactive
+ls r0 Filter2 1 Quantity
+beqz r0 f2inactive
+s Bypass2 On 0
+j f3
+f2inactive:
+s Bypass2 On 1
+
+f3:
+l r0 Filter3 On
+beqz r0 f3inactive
+ls r0 Filter3 1 Quantity
+beqz r0 f3inactive
+s Bypass3 On 0
+j done
+f3inactive:
+s Bypass3 On 1
+
+done:
+yield
+j loop

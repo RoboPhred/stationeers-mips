@@ -1,0 +1,127 @@
+# Temperature control
+
+# If temp > Upper or < Lower, turn on
+# cooler or heater until temp hits desired.
+
+# Heater / Cooler inputs can be connected
+# directly to a Wall Heater / Wall Cooler,
+# or to a memory cell for batch writers
+
+# Supports attaching a dial or memory to
+# DesiredTemperatureDevice for external
+# temperature control
+
+# =======================================
+# Begin Configuration (all temps in Kelvin)
+
+# Sets the desired temperature to mantain
+define DesiredTemperature 295.15 # 22c
+
+# Sets the units for external desired temp device
+# 0: kelvin.  1: celcius
+define ExternalDesiredTempUnits 1
+
+# Sets the temperature offset that triggers
+# a correction (IE 1 degree kelvin below desired)
+define Threshold 1 # 1c difference
+
+# Interval between temperature checks in seconds
+define CheckInterval 1
+# End Configuration
+# =======================================
+
+define PrefabMemory -851746783
+alias GasSensor d0 # Gas sensor
+alias Heater d1 # Wall Heater / Memory
+alias Cooler d2 # Wall Cooler  / Memory
+alias DesiredTemperatureDevice d3 # Dial/Mem/Math
+
+alias t r0 # Temperature reading
+alias CurDesired r1 # Current desired temp
+alias CurLower r2 # Current lower threshhold
+alias CurUpper r3 # Current upper threshhold
+alias x r4 # Scratc h 1
+alias y r5 # Scratch 2
+
+check:
+jal read # Read desired temperature
+l t GasSensor Temperature # Check temperature
+blt t CurLower heating # Temp < lower, heat
+bgt t CurUpper cooling # Temp > upper, cool
+j idle # Temp in range, idle
+
+# Read the desired temp from IC or extern device
+read:
+bdse DesiredTemperatureDevice readDial
+# No external device, use configured temp
+move CurDesired DesiredTemperature
+j readFinish
+readDial:
+# Read external dial/memory/processor
+l CurDesired DesiredTemperatureDevice Setting
+# Check units
+beqz ExternalDesiredTempUnits readFinish # Is mode C
+add CurDesired CurDesired 273.15 # Convert C to K
+readFinish:
+sub CurLower CurDesired Threshold # Calc min
+add CurUpper CurDesired Threshold # Calc max
+j ra
+
+cooling:
+s db Setting -1 # Report cooling
+push 0 # Arg 0 for heater mode: Heater off
+jal setHeater # Set heater mode
+push 1 # Arg 0 for cooler mode: Cooler off
+jal setCooler # Set cooler mode
+sleep CheckInterval # Wait for temp change
+l t GasSensor Temperature # Read new temp
+jal read # Read desired temp
+blt t CurDesired idle # Stop cooling if temp < des
+j cooling # Else keep cooling
+
+heating:
+s db Setting 1 # Report heating
+push 1 # Arg 0 for setHeater: Heater on
+jal setHeater # Set heater mode
+push 0 # Arg 0 for setCooler: Cooler off
+jal setCooler # Set cooler mode
+# Allow time to pass for heating to take effect
+sleep CheckInterval
+l t GasSensor Temperature
+# If temp is above desired, stop
+jal read
+bgt t CurDesired idle
+# Otherwise, keep heating
+j heating
+
+idle:
+s db Setting 0 # Report idle
+push 0 # setHeater arg 0: Heater off
+jal setHeater # set heater mode
+push 0 # setCooler arg 0: Cooler off
+jal setCooler # set cooler mode
+sleep CheckInterval # Delay for temp change
+j check # Re check temp
+
+# Set heater, either wall cooler or logic memory
+# Pops 0/1 for off/on from stack
+setHeater:
+pop x # Read arg0: On/Off
+l y Heater PrefabHash # Check type
+beq y PrefabMemory setHeaterMem # Is type memory?
+s Heater On x # Not memory, adjust on/off
+j ra # Return
+setHeaterMem:
+s Heater Setting x # Is memory, set setting
+j ra # Return
+
+# Same as setHeater, for cooler
+setCooler:
+pop x # Read arg0: On/Off
+l y Cooler PrefabHash # Check type
+beq y PrefabMemory setCoolerMem # Is type memory?
+s Cooler On x # Not memory, adjust on/off
+j ra # Return
+setCoolerMem:
+s Cooler Setting x # Is memory, set setting
+j ra # Return
