@@ -9,6 +9,7 @@ Monitors the temperature of a gas sensor and mantains temperature through the us
 - Shmitt triggered
 - Supports batch writers and direct wall heaters / wall coolers
 - Optional external temperature control
+- Status reports via Status output.
 
 ## Devices
 
@@ -46,6 +47,16 @@ Monitors the temperature of a gas sensor and mantains temperature through the us
   Default: _1_
   The time in seconds to wait between temperature checks.
 
+## Status codes
+
+- `-1`: Cooling
+- `0`: Idle
+- `1`: Heating
+
 ## Workshop Link
 
 [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=2000346947)
+
+## Implementation notes
+
+For some reason I used the stack to pass function vars instead of to preserve registers... Not ideal, but it works.
